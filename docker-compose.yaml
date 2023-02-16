@@ -1,0 +1,59 @@
+version: "3.9"
+
+networks:
+  card:
+volumes:
+  db-data:
+services:
+  docker-postgresql:
+    restart: unless-stopped
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - card
+      - default
+  docker-redis:
+    restart: unless-stopped
+    image: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - card
+      - default
+  docker-php-fpm:
+    restart: unless-stopped
+    build:
+      context: ./docker/php-fpm
+    volumes:
+      - ./src:/var/www
+    networks:
+      - card
+      - default
+  docker-nginx:
+    restart: unless-stopped
+    image: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - card
+      - default
+  main-app:
+    restart: unless-stopped
+    build:
+      context: ./docker/main-app
+    volumes:
+      - ./src/:/var/www
+    networks:
+      - card
+      - default
+    depends_on:
+      - docker-postgresql
